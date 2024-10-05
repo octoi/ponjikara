@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model organisation {
+  id   String  @id @default(uuid())
+  name String
+  logo String?
+
+  users   user[]
+  admins  user[]   @relation("admins")
+  tickets ticket[]
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  USER
+}
+
+model user {
+  id       String   @id @default(uuid())
+  name     String
+  email    String   @unique
+  password String
+  profile  String?
+  role     UserRole @default(USER) // only to manage super admin
+
+  // Relation for current active ticket
+  current_ticket    ticket? @relation("CurrentTicket", fields: [current_ticket_id], references: [id])
+  current_ticket_id String? @unique
+
+  organisations       organisation[]
+  owned_organisations organisation[] @relation("admins")
+  tickets             ticket[]
+}
+
+model ticket {
+  id String @id @default(uuid())
+
+  entry_time DateTime? @default(now())
+  exit_time  DateTime?
+
+  active Boolean
+
+  user    user   @relation(fields: [user_id], references: [id])
+  user_id String @unique
+
+  current_for_user user? @relation("CurrentTicket")
+
+  organisation    organisation @relation(fields: [organisation_id], references: [id])
+  organisation_id String
+}
